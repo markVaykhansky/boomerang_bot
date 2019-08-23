@@ -1,5 +1,8 @@
 import * as express from 'express'
 import * as bodyParser from 'body-parser';
+import axios from "axios";
+
+const ACCESS_TOKEN = "EAAFjdqD9bCcBAKFeWTZCjpYDHWMl2iiZAhNmCUFpCBKOu0oTdIGe3VKqazz37CBQSRzSaLnMjMbwlegEsYKus63UsKdct6O1QR2JqAQy22QuPlVCdVXzu5gPJx4Ez0mUTZAWTCctmGy0AOSIzPAHeDW0aXeivAZAagEY7z6UZAgZDZD";
 
 class App {
   public express;
@@ -36,35 +39,64 @@ class App {
       }
     });
 
-    router.post('/webhook', (req, res) => {  
+    router.post('/webhook', async (req, res) => {  
       const body = req.body;
 
-      if (body.object === 'page') {
-
-        // Iterates over each entry - there may be multiple if batched
-        body.entry.forEach(function(entry) {
-
-          // Gets the message. entry.messaging is an array, but 
-          // will only ever contain one message, so we get index 0
-          let webhook_event = entry.messaging[0];
-          console.log(webhook_event);
-        });
-
-        res.status(200).send('EVENT_RECEIVED');
-      } else {
+      if (body.object !== 'page') 
         res.sendStatus(404);
-      }
-    });
 
-    // this.express.use(function(req, res, next) {
-    //   res.header("Access-Control-Allow-Origin", "*");
-    //   res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
-    //   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    //   next();
-    // });
+      body.entry.forEach(async (entry) => {
+        const webhook_event = entry.messaging[0];
+        const senderPSID = webhook_event.sender.id;
+        
+        console.log('Sender PSID: ' + webhook_event.sender.id);
+        console.log(webhook_event);
+
+        if (webhook_event.message) {
+          const responseMessage = this.handleMessage(webhook_event.message);  
+          console.log("Response message", responseMessage); 
+          await this.sendResponseToMessangerAPI(senderPSID, responseMessage);
+        };
+      });
+
+      res.status(200).send('EVENT_HANDELED');
+    });
 
     this.express.use(bodyParser.json());
     this.express.use('/', router)
+  }
+
+  private async sendResponseToMessangerAPI(sender_psid: string, responseMessage) {
+    const responseObject = {
+      "recipient": {
+        "id": sender_psid
+      },
+      "message": responseMessage
+    }
+    console.log("Response object", responseObject);
+
+    const url = `https://graph.facebook.com/v2.6/me/messages?access_token=${ACCESS_TOKEN}`
+    console.log("Url: " + url);
+
+    try {
+      await axios.post(url, responseObject);
+    }
+    catch(error){ 
+      console.log("An error accured contacting Facebook API");
+      console.log(error.message, error);
+    }
+  }
+
+  private handleMessage(received_message) {
+    if (received_message.text) {    
+      return {
+        "text": `You sent the message: "${received_message.text}"`
+      }
+    } else {
+      return {
+        "text": "You sent an empty message"
+      }
+    }  
   }
 }
 
