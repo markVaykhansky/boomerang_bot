@@ -1,7 +1,17 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const bodyParser = require("body-parser");
+const axios_1 = require("axios");
+const ACCESS_TOKEN = "EAAFjdqD9bCcBAKFeWTZCjpYDHWMl2iiZAhNmCUFpCBKOu0oTdIGe3VKqazz37CBQSRzSaLnMjMbwlegEsYKus63UsKdct6O1QR2JqAQy22QuPlVCdVXzu5gPJx4Ez0mUTZAWTCctmGy0AOSIzPAHeDW0aXeivAZAagEY7z6UZAgZDZD";
 class App {
     constructor() {
         this.express = express();
@@ -30,30 +40,58 @@ class App {
                 }
             }
         });
-        router.post('/webhook', (req, res) => {
+        router.post('/webhook', (req, res) => __awaiter(this, void 0, void 0, function* () {
             const body = req.body;
-            if (body.object === 'page') {
-                // Iterates over each entry - there may be multiple if batched
-                body.entry.forEach(function (entry) {
-                    // Gets the message. entry.messaging is an array, but 
-                    // will only ever contain one message, so we get index 0
-                    let webhook_event = entry.messaging[0];
-                    console.log(webhook_event);
-                });
-                res.status(200).send('EVENT_RECEIVED');
-            }
-            else {
+            if (body.object !== 'page')
                 res.sendStatus(404);
-            }
-        });
-        // this.express.use(function(req, res, next) {
-        //   res.header("Access-Control-Allow-Origin", "*");
-        //   res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
-        //   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-        //   next();
-        // });
+            body.entry.forEach((entry) => __awaiter(this, void 0, void 0, function* () {
+                const webhook_event = entry.messaging[0];
+                const senderPSID = webhook_event.sender.id;
+                console.log('Sender PSID: ' + webhook_event.sender.id);
+                console.log(webhook_event);
+                if (webhook_event.message) {
+                    const responseMessage = this.handleMessage(webhook_event.message);
+                    console.log("Response message", responseMessage);
+                    yield this.sendResponseToMessangerAPI(senderPSID, responseMessage);
+                }
+                ;
+            }));
+            res.status(200).send('EVENT_HANDELED');
+        }));
         this.express.use(bodyParser.json());
         this.express.use('/', router);
+    }
+    sendResponseToMessangerAPI(sender_psid, responseMessage) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const responseObject = {
+                "recipient": {
+                    "id": sender_psid
+                },
+                "message": responseMessage
+            };
+            console.log("Response object", responseObject);
+            const url = `https://graph.facebook.com/v2.6/me/messages?access_token=${ACCESS_TOKEN}`;
+            console.log("Url: " + url);
+            try {
+                yield axios_1.default.post(url, responseObject);
+            }
+            catch (error) {
+                console.log("An error accured contacting Facebook API");
+                console.log(error.message, error);
+            }
+        });
+    }
+    handleMessage(received_message) {
+        if (received_message.text) {
+            return {
+                "text": `You sent the message: "${received_message.text}"`
+            };
+        }
+        else {
+            return {
+                "text": "You sent an empty message"
+            };
+        }
     }
 }
 exports.default = new App().express;

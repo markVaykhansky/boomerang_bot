@@ -42,6 +42,8 @@ class App {
     router.post('/webhook', async (req, res) => {  
       const body = req.body;
 
+      console.log(body);
+
       if (body.object !== 'page') 
         res.sendStatus(404);
 
