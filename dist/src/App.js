@@ -42,19 +42,26 @@ class App {
         });
         router.post('/webhook', (req, res) => __awaiter(this, void 0, void 0, function* () {
             const body = req.body;
-            if (body.object !== 'page')
+            if (body.object !== 'page') {
+                console.log("body.object !== page");
                 res.sendStatus(404);
+            }
             body.entry.forEach((entry) => __awaiter(this, void 0, void 0, function* () {
                 const webhook_event = entry.messaging[0];
                 const senderPSID = webhook_event.sender.id;
                 console.log('Sender PSID: ' + webhook_event.sender.id);
                 console.log(webhook_event);
-                if (webhook_event.message) {
-                    const responseMessage = this.handleMessage(webhook_event.message);
-                    console.log("Response message", responseMessage);
-                    yield this.sendResponseToMessangerAPI(senderPSID, responseMessage);
+                if (webhook_event.postback.title === "Get Started") {
+                    console.log("Get started recieved");
+                    App.PSIDToStepID[senderPSID] = "welcome";
                 }
-                ;
+                const currentStepId = App.PSIDToStepID[senderPSID];
+                const currentStepHendler = App.stepIdToHandler[currentStepId];
+                const [nextStepId, responseMessage] = currentStepHendler(webhook_event);
+                console.log("Response message", responseMessage);
+                console.log("next step id", nextStepId);
+                App.PSIDToStepID[senderPSID] = nextStepId;
+                yield this.sendResponseToMessangerAPI(senderPSID, responseMessage);
             }));
             res.status(200).send('EVENT_HANDELED');
         }));
@@ -71,7 +78,6 @@ class App {
             };
             console.log("Response object", responseObject);
             const url = `https://graph.facebook.com/v2.6/me/messages?access_token=${ACCESS_TOKEN}`;
-            console.log("Url: " + url);
             try {
                 yield axios_1.default.post(url, responseObject);
             }
@@ -81,18 +87,19 @@ class App {
             }
         });
     }
-    handleMessage(received_message) {
-        if (received_message.text) {
-            return {
-                "text": `You sent the message: "${received_message.text}"`
-            };
-        }
-        else {
-            return {
-                "text": "You sent an empty message"
-            };
-        }
-    }
 }
+App.PSIDToStepID = {};
+App.stepIdToHandler = {
+    "welcome": (webhookEvent) => {
+        return ["get_desired_item", {
+                "text": "Hey, welcome to Boomerang! What would you like to rent?"
+            }];
+    },
+    "get_desired_item": (webhookEvent) => {
+        return ["get_desired_item", {
+                "text": "When do you need this item? You can either specify a day of the week or a specific time & date."
+            }];
+    }
+};
 exports.default = new App().express;
 //# sourceMappingURL=App.js.map
