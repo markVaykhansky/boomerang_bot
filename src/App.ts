@@ -42,10 +42,10 @@ class App {
     router.post('/webhook', async (req, res) => {  
       const body = req.body;
 
-      console.log(body);
-
-      if (body.object !== 'page') 
+      if (body.object !== 'page') {
+        console.log("body.object !== page");
         res.sendStatus(404);
+      }
 
       body.entry.forEach(async (entry) => {
         const webhook_event = entry.messaging[0];
@@ -54,11 +54,18 @@ class App {
         console.log('Sender PSID: ' + webhook_event.sender.id);
         console.log(webhook_event);
 
-        if (webhook_event.message) {
-          const responseMessage = this.handleMessage(webhook_event.message);  
+        let responseMessage = undefined;
+
+        if(webhook_event.postback)
+          responseMessage = this.handlePostback(webhook_event.postback);
+
+        if (webhook_event.message)
+          responseMessage = this.handleMessage(webhook_event.message);  
+
+        if(!!responseMessage) {
           console.log("Response message", responseMessage); 
           await this.sendResponseToMessangerAPI(senderPSID, responseMessage);
-        };
+        }
       });
 
       res.status(200).send('EVENT_HANDELED');
@@ -78,7 +85,6 @@ class App {
     console.log("Response object", responseObject);
 
     const url = `https://graph.facebook.com/v2.6/me/messages?access_token=${ACCESS_TOKEN}`
-    console.log("Url: " + url);
 
     try {
       await axios.post(url, responseObject);
@@ -86,6 +92,14 @@ class App {
     catch(error){ 
       console.log("An error accured contacting Facebook API");
       console.log(error.message, error);
+    }
+  }
+
+  private handlePostback(postback) {
+    console.log("Postback", postback);
+
+    return {
+      "text": "You sent a postback, bot responded"
     }
   }
 
