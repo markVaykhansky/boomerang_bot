@@ -69,7 +69,8 @@ class App {
         console.log('Sender PSID: ' + webhook_event.sender.id);
         console.log(webhook_event);
 
-        if(webhook_event.postback.title === "Get Started") {
+        if(!!webhook_event.postback && 
+          webhook_event.postback.title === "Get Started") {
           console.log("Get started recieved");
           App.PSIDToStepID[senderPSID] = "welcome";
         }
