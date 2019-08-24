@@ -10,15 +10,53 @@ class App {
   private static PSIDToStepID = {};
 
   private static stepIdToHandler = {
-    "welcome": (webhookEvent) => {
-      return ["get_desired_item", {
+    "get_desired_item": (webhookEvent) => {
+      console.log("Getting desired item...");
+
+      return ["get_desired_date", {
         "text": "Hey, welcome to Boomerang! What would you like to rent?"
       }];
     },
-    "get_desired_item": (webhookEvent) => {
-      return ["get_desired_item", {
+    "get_desired_date": (webhookEvent) => {
+      console.log("Getting desired date...");
+
+      return ["ask_about_duration", {
         "text": "When do you need this item? You can either specify a day of the week or a specific time & date."
       }];
+    },
+    "ask_about_duration": (webhookEvent) => {
+      console.log("Asking about duration...");
+
+      return ["handle_duration_request",
+      {
+        "attachment":{
+          "type":"template",
+          "payload":{
+            "template_type":"button",
+            "text":"Do you know for how long will you need this item?",
+            "buttons":[
+              {
+                "type":"postback",
+                "title":"Yes",
+                "payload":"Yes"
+              },
+              {
+                "type":"postback",
+                "title":"No",
+                "payload":"No"
+              }
+            ]
+          }
+        }
+      }];
+    },
+    "handle_duration_request": (webhookEvent) => {
+        console.log("handle_duration_request");
+        console.log(webhookEvent);
+
+        return ["handle_duration_request", {
+          "text": "Handled Duration Request"
+        }];
     }
   }
 
@@ -64,16 +102,11 @@ class App {
 
       body.entry.forEach(async (entry) => {
         const webhook_event = entry.messaging[0];
-        const senderPSID = webhook_event.sender.id;
-        
-        console.log('Sender PSID: ' + webhook_event.sender.id);
         console.log(webhook_event);
+        const senderPSID = webhook_event.sender.id;
 
-        if(!!webhook_event.postback && 
-          webhook_event.postback.title === "Get Started") {
-          console.log("Get started recieved");
-          App.PSIDToStepID[senderPSID] = "welcome";
-        }
+        if(!!webhook_event.postback && webhook_event.postback.title === "Get Started") 
+          App.PSIDToStepID[senderPSID] = "get_desired_item";
 
         const currentStepId = App.PSIDToStepID[senderPSID];
         const currentStepHendler = App.stepIdToHandler[currentStepId];
