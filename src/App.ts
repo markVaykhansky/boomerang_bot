@@ -4,8 +4,25 @@ import axios from "axios";
 
 const ACCESS_TOKEN = "EAAFjdqD9bCcBAKFeWTZCjpYDHWMl2iiZAhNmCUFpCBKOu0oTdIGe3VKqazz37CBQSRzSaLnMjMbwlegEsYKus63UsKdct6O1QR2JqAQy22QuPlVCdVXzu5gPJx4Ez0mUTZAWTCctmGy0AOSIzPAHeDW0aXeivAZAagEY7z6UZAgZDZD";
 
+const STEP_IDS = ;
+
 class App {
   public express;
+
+  private static PSIDToStepID = {};
+
+  private static stepIdToHandler = {
+    "welcome": (webhookEvent) => {
+      return ["get_desired_item", {
+        "text": "Hey, welcome to Boomerang! What would you like to rent?"
+      }];
+    },
+    "get_desired_item": (webhookEvent) => {
+      return ["get_desired_item", {
+        "text": "When do you need this item? You can either specify a day of the week or a specific time & date."
+      }];
+    }
+  }
 
   constructor () {
     this.express = express();
@@ -54,18 +71,21 @@ class App {
         console.log('Sender PSID: ' + webhook_event.sender.id);
         console.log(webhook_event);
 
-        let responseMessage = undefined;
-
-        if(webhook_event.postback)
-          responseMessage = this.handlePostback(webhook_event.postback);
-
-        if (webhook_event.message)
-          responseMessage = this.handleMessage(webhook_event.message);  
-
-        if(!!responseMessage) {
-          console.log("Response message", responseMessage); 
-          await this.sendResponseToMessangerAPI(senderPSID, responseMessage);
+        if(webhook_event.postback.title === "Get Started") {
+          console.log("Get started recieved");
+          App.PSIDToStepID[senderPSID] = "welcome";
         }
+
+        const currentStepId = App.PSIDToStepID[senderPSID];
+        const currentStepHendler = App.stepIdToHandler[currentStepId];
+
+        const [nextStepId, responseMessage] = currentStepHendler(webhook_event);
+
+        console.log("Response message", responseMessage); 
+        console.log("next step id", nextStepId);
+
+        App.PSIDToStepID[senderPSID] = nextStepId;
+        await this.sendResponseToMessangerAPI(senderPSID, responseMessage);
       });
 
       res.status(200).send('EVENT_HANDELED');
@@ -93,26 +113,6 @@ class App {
       console.log("An error accured contacting Facebook API");
       console.log(error.message, error);
     }
-  }
-
-  private handlePostback(postback) {
-    console.log("Postback", postback);
-
-    return {
-      "text": "You sent a postback, bot responded"
-    }
-  }
-
-  private handleMessage(received_message) {
-    if (received_message.text) {    
-      return {
-        "text": `You sent the message: "${received_message.text}"`
-      }
-    } else {
-      return {
-        "text": "You sent an empty message"
-      }
-    }  
   }
 }
 
