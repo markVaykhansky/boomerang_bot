@@ -32,7 +32,7 @@ class App {
     },
     "ask_about_duration": (webhookEvent) => {
       return ["handle_duration_request",
-      {
+      [{
         "attachment":{
           "type":"template",
           "payload":{
@@ -52,7 +52,7 @@ class App {
             ]
           }
         }
-      }];
+      }]];
     },
     "handle_duration_request": (webhookEvent) => {
         const userResponse = webhookEvent.postback.paylaod;
