@@ -13,20 +13,24 @@ class App {
     "get_desired_item": (webhookEvent) => {
       console.log("Getting desired item...");
 
-      return ["get_desired_date", {
-        "text": "Hey, welcome to Boomerang! What would you like to rent?"
-      }];
+      return ["get_desired_date", [{
+        "text": "Hey, welcome to Boomerang!"
+      },
+      {
+        "text": "What would you like to rent?"
+      }]];
     },
     "get_desired_date": (webhookEvent) => {
       console.log("Getting desired date...");
 
-      return ["ask_about_duration", {
-        "text": "When do you need this item? You can either specify a day of the week or a specific time & date."
-      }];
+      return ["ask_about_duration", [{
+        "text": "When do you need this item?"
+      }, 
+      {
+        "text": "You can either specify a day of the week or a specific time & date"
+      }]];
     },
     "ask_about_duration": (webhookEvent) => {
-      console.log("Asking about duration...");
-
       return ["handle_duration_request",
       {
         "attachment":{
@@ -51,12 +55,50 @@ class App {
       }];
     },
     "handle_duration_request": (webhookEvent) => {
-        console.log("handle_duration_request");
-        console.log(webhookEvent);
+        const userResponse = webhookEvent.postback.paylaod;
 
-        return ["handle_duration_request", {
-          "text": "Handled Duration Request"
-        }];
+        if(userResponse === "No") 
+          return ["finish", [
+            {
+              "text": "Cool, we’ll figure it out as we go"
+            },
+            {
+              "text": "Where would you like us to ship this item?"
+            },
+            {
+              "text": "Please be a specific as possible"
+            }
+          ]];
+
+        if(userResponse === "Yes") 
+          return ["handle_user_duration", [{
+            "text": "Tell us!"
+          }]];
+
+        return ["ask_about_duration", {
+          "text": "Unexpected User Response"
+        }]
+    },
+    "handle_user_duration": (webhookEvent) => {
+      return ["finish", [
+        {
+          "text": "Where would you like us to ship this item?"
+        },
+        {
+          "text": "Please be a specific as possible"
+        }
+      ]];
+    },
+    "finish": (webhook) => {
+      return ["done", {
+        "text": "Ok, we’re on it!"
+      },
+      {
+        "text": "We’ll get back to you ASAP :-)"
+      }];
+    },
+    "done": (webhook) => {
+        return ["done", []];
     }
   }
 
@@ -111,13 +153,13 @@ class App {
         const currentStepId = App.PSIDToStepID[senderPSID];
         const currentStepHendler = App.stepIdToHandler[currentStepId];
 
-        const [nextStepId, responseMessage] = currentStepHendler(webhook_event);
+        const [nextStepId, responseMessages] = currentStepHendler(webhook_event);
 
-        console.log("Response message", responseMessage); 
+        console.log("Response message", responseMessages); 
         console.log("next step id", nextStepId);
 
         App.PSIDToStepID[senderPSID] = nextStepId;
-        await this.sendResponseToMessangerAPI(senderPSID, responseMessage);
+        responseMessages.forEach(async (responseMessage) => await this.sendResponseToMessangerAPI(senderPSID, responseMessage));
       });
 
       res.status(200).send('EVENT_HANDELED');
