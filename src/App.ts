@@ -58,7 +58,7 @@ class App {
         console.log(webhookEvent);
         console.log(webhookEvent.postback);
 
-        const userResponse = webhookEvent.postback.paylaod;
+        const userResponse = webhookEvent.postback.payload;
 
         if(userResponse === "No") 
           return ["finish", [
