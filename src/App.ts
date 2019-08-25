@@ -16,10 +16,7 @@ class App {
       console.log("Getting desired item...");
 
       return ["get_desired_date", [{
-        "text": "Hey, welcome to Boomerang!"
-      },
-      {
-        "text": "What would you like to rent?"
+        "text": "Hey, welcome to Boomerang!\nWhat would you like to rent?"
       }]];
     },
     "get_desired_date": (webhookEvent) => {
