@@ -93,12 +93,12 @@ class App {
       ]];
     },
     "finish": (webhook) => {
-      return ["done", {
+      return ["done", [{
         "text": "Ok, we’re on it!"
       },
       {
         "text": "We’ll get back to you ASAP :-)"
-      }];
+      }]];
     },
     "done": (webhook) => {
         return ["done", []];
