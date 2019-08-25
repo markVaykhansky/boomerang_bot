@@ -55,6 +55,9 @@ class App {
       }]];
     },
     "handle_duration_request": (webhookEvent) => {
+        console.log(webhookEvent);
+        console.log(webhookEvent.postback);
+
         const userResponse = webhookEvent.postback.paylaod;
 
         if(userResponse === "No") 
@@ -75,9 +78,9 @@ class App {
             "text": "Tell us!"
           }]];
 
-        return ["ask_about_duration", {
+        return ["ask_about_duration", [{
           "text": "Unexpected User Response"
-        }]
+        }]];
     },
     "handle_user_duration": (webhookEvent) => {
       return ["finish", [
